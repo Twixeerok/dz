@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+
+{% block content %}
+<form name = "key" method = "POST" ectype = "multipart/form-data">
+    {% csrf_token %}
+    {{form.as_p}}
+    <input type = "submit" value = "Подтвердить"> 
+</form>
+<h1><a href="{% url 'hello' %}">Перейти на другую стр</a></h1>
+<h1><a href="{% url 'gets' %}">прошлое дз</a></h1>
+{%endblock%}
