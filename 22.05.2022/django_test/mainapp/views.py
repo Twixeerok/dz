@@ -1,29 +1,23 @@
 from django.contrib.auth import logout, authenticate, login, get_user_model
 from django.shortcuts import render, redirect
 from django.views import View
+from django.views.generic import TemplateView, FormView
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 from mainapp.models import Post
 from mainapp.forms import ArtForm
 User = get_user_model()
 
 
-class MainPageView(View):
-
-    def get(self, request):
-        
-        context = {
-            'posts': Post.objects.all().order_by('-id')
-        }
-        return render(request, 'main_page.html', context)
+class MainPageView(TemplateView):
+    template_name = 'main_page.html'
+    extra_context = {'page': Post.objects.all()}
 
 
-class Login(View):
 
-    def get(self, request):
-        if request.user.is_anonymous:
-            return render(request, 'login.html')
-        else:
-            return redirect('/')
+class Login(LoginRequiredMixin, TemplateView):
+    template_name = 'login.html'
+ 
 
     def post(self, request):
         user = authenticate(
@@ -43,13 +37,9 @@ def logout_func(request):
     return redirect('/login')
 
 
-class RegistrationView(View):
+class RegistrationView(LoginRequiredMixin, TemplateView):
+    template_name = 'registration.html'
 
-    def get(self, request):
-        if request.user.is_anonymous:
-            return render(request, 'registration.html')
-        else:
-            return redirect('/')
 
     def post(self, request):
         data = dict(request.POST)
@@ -67,16 +57,13 @@ class RegistrationView(View):
             return render(request, 'registration.html', {'re_password': "Не совпадают"})
 
 
-class Profile(View):
-
-    def get(self, request):
-        if not request.user.is_anonymous:
-            return render(request, 'profile.html')
-        else:
-            return redirect('/login')
+class Profile(LoginRequiredMixin, TemplateView):
+    template_name = 'profile.html'
 
     def post(self, request):
         user = request.user
+        # users = user.__class__.objects.filter(pk=user.pk)
+        # users.update(**request.POST)
         user.first_name = request.POST.get('first_name')
         user.last_name = request.POST.get('last_name')
         user.username = request.POST.get('username')
@@ -85,20 +72,15 @@ class Profile(View):
         return redirect('/')
 
 class Posts(View):
-    def get(self, request):
-        form = ArtForm
-        context = {
-            "form": form
-        }
-        return render(request, 'post.html', context)
+    template_name = 'main_page.html'
+    model = Post
+    form_class = FormView
     
-    def post(self, request):
-        form = ArtForm(request.POST)
-        if request.method == 'POST':
-            if form.is_valid():
-                form = form.save(commit=False)
-                form.owner = request.user
-                form.save()   
-                return redirect('/')
+    def form_valid(self, form):
+        if form.is_valid():
+            form = form.save(commit=False)
+            form.owner = self.request.user
+            form.save()   
+            return redirect('/')
 
     
